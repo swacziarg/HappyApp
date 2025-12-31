@@ -17,7 +17,7 @@
 - [X] Install FastAPI
 - [X] Add `.env.example`
 - [X] Backend runs locally (`uvicorn`)
-- [ ] Frontend builds (placeholder OK)
+- [X] Frontend builds (placeholder OK)
 
 **Gate**
 - [ ] Repo can be cloned and run from scratch
