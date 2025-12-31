@@ -1,0 +1,208 @@
+# 🧠 Garmin → Mood App — Build Checklist
+
+> Goal: Build a web-first MVP that estimates daily mood from Garmin data, tested phase by phase with minimal pain.
+
+---
+
+## 🔹 Phase 0 — Project Groundwork (Foundation)
+
+**Goal:** Make future changes cheap and reversible.
+
+- [ ] Create Git repository
+- [ ] Set repo structure:
+    backend/
+    frontend/
+    scripts/
+- [ ] Initialize Python virtual environment
+- [ ] Install FastAPI
+- [ ] Add `.env.example`
+- [ ] Backend runs locally (`uvicorn`)
+- [ ] Frontend builds (placeholder OK)
+
+**Gate**
+- [ ] Repo can be cloned and run from scratch
+- [ ] Backend + frontend both start without errors
+
+---
+
+## 🔹 Phase 1 — Database (Data Spine)
+
+**Goal:** Lock down schema early.
+
+- [ ] Choose Postgres provider (Supabase / Neon)
+- [ ] Create database
+- [ ] Create tables:
+- [ ] `users`
+- [ ] `sleep_summary`
+- [ ] `daily_physiology`
+- [ ] `mood_labels`
+- [ ] `predictions`
+- [ ] Add indexes on `(user_id, date)`
+- [ ] Write sanity SQL queries
+
+**Gate**
+- [ ] Can insert fake daily data
+- [ ] Can query by date range
+- [ ] No assumptions about single-user baked in
+
+---
+
+## 🔹 Phase 2 — Manual Data Ingest (Real Data First)
+
+**Goal:** Work with real Garmin data before APIs.
+
+- [ ] Export Garmin sleep data (CSV / JSON)
+- [ ] Export HR / HRV / stress data
+- [ ] Write import script
+- [ ] Normalize dates
+- [ ] Normalize units
+- [ ] Handle missing values
+- [ ] Map fields → DB schema
+- [ ] Import 7–14 days of data
+- [ ] Ensure idempotent imports
+
+**Gate**
+- [ ] DB reflects real historical data
+- [ ] Re-import does not duplicate rows
+- [ ] Missing values don’t crash scripts
+
+---
+
+## 🔹 Phase 3 — Feature Extraction
+
+**Goal:** Convert raw metrics into interpretable signals.
+
+- [ ] Create daily feature extraction script
+- [ ] Compute:
+- [ ] HRV deviation vs rolling baseline
+- [ ] Sleep debt vs baseline
+- [ ] Resting HR delta
+- [ ] Stress percentile
+- [ ] Activity over/under baseline
+- [ ] Store daily feature vectors
+- [ ] Log intermediate values for debugging
+
+**Gate**
+- [ ] Each day outputs a clean feature vector
+- [ ] Baselines update correctly
+- [ ] Feature values look reasonable to a human
+
+---
+
+## 🔹 Phase 4 — Mood Inference Engine (Rules-Based)
+
+**Goal:** Produce explainable mood estimates.
+
+- [ ] Define mood scale (1–5)
+- [ ] Write scoring rules
+- [ ] Apply penalties/boosts
+- [ ] Generate explanation text
+- [ ] Output confidence level
+
+**Gate**
+- [ ] Can explain why any day is high or low
+- [ ] No NaNs or silent failures
+- [ ] Single-feature changes affect output predictably
+
+---
+
+## 🔹 Phase 5 — API Layer
+
+**Goal:** Decouple backend logic from UI.
+
+- [ ] Create FastAPI app
+- [ ] Add endpoints:
+- [ ] `GET /today`
+- [ ] `GET /history`
+- [ ] `POST /mood`
+- [ ] Validate request/response schemas
+- [ ] Handle missing data gracefully
+
+**Gate**
+- [ ] Endpoints work via curl/Postman
+- [ ] Frontend could exist without DB knowledge
+- [ ] Errors return useful messages
+
+---
+
+## 🔹 Phase 6 — Web UI
+
+**Goal:** Close the feedback loop.
+
+- [ ] Create Today view
+- [ ] Display predicted mood + explanation
+- [ ] Build 1-tap mood check-in
+- [ ] Persist mood labels
+- [ ] Create history view
+- [ ] Mobile-friendly layout
+
+**Gate**
+- [ ] App usable daily without touching code
+- [ ] Mood check-ins persist correctly
+- [ ] Predicted vs actual mood visible
+
+---
+
+## 🔹 Phase 7 — Automation
+
+**Goal:** System runs hands-off.
+
+- [ ] Add daily scheduled job
+- [ ] Job runs:
+- [ ] Data ingest
+- [ ] Feature extraction
+- [ ] Mood prediction
+- [ ] Ensure idempotency
+- [ ] Log failures clearly
+
+**Gate**
+- [ ] New days appear automatically
+- [ ] Missed days recover cleanly
+- [ ] Re-running job doesn’t corrupt data
+
+---
+
+## 🔹 Phase 8 — Garmin Health API (Optional)
+
+**Goal:** Replace manual ingest cleanly.
+
+- [ ] Apply for Garmin Health API
+- [ ] Implement webhook endpoint
+- [ ] Map API payloads → existing schema
+- [ ] Compare API vs manual imports
+- [ ] Disable manual ingest
+
+**Gate**
+- [ ] Outputs match manual pipeline
+- [ ] No schema changes required
+- [ ] Manual import can be removed
+
+---
+
+## 🔹 Phase 9 — Multi-User + Consent (Only If Needed)
+
+**Goal:** Prepare for external users safely.
+
+- [ ] Add authentication provider
+- [ ] Add consent flow
+- [ ] Tie Garmin OAuth → user_id
+- [ ] Enforce row-level security
+- [ ] Add privacy policy
+
+**Gate**
+- [ ] Users cannot see each other’s data
+- [ ] Revoking consent stops ingestion
+- [ ] System still works for original user
+
+---
+
+## 🧠 Weekly Reality Check
+
+- [ ] Am I testing one thing at a time?
+- [ ] Can I explain every number shown?
+- [ ] Am I optimizing for insight, not accuracy?
+- [ ] Is everything reversible?
+
+---
+
+> Rule: **Never advance a phase until its gate is fully checked.**
