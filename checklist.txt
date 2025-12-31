@@ -8,15 +8,15 @@
 
 **Goal:** Make future changes cheap and reversible.
 
-- [ ] Create Git repository
-- [ ] Set repo structure:
+- [X] Create Git repository
+- [X] Set repo structure:
     backend/
     frontend/
     scripts/
-- [ ] Initialize Python virtual environment
-- [ ] Install FastAPI
-- [ ] Add `.env.example`
-- [ ] Backend runs locally (`uvicorn`)
+- [X] Initialize Python virtual environment
+- [X] Install FastAPI
+- [X] Add `.env.example`
+- [X] Backend runs locally (`uvicorn`)
 - [ ] Frontend builds (placeholder OK)
 
 **Gate**
