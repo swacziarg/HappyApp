@@ -20,8 +20,8 @@
 - [X] Frontend builds (placeholder OK)
 
 **Gate**
-- [ ] Repo can be cloned and run from scratch
-- [ ] Backend + frontend both start without errors
+- [X] Repo can be cloned and run from scratch
+- [X] Backend + frontend both start without errors
 
 ---
 
@@ -29,21 +29,21 @@
 
 **Goal:** Lock down schema early.
 
-- [ ] Choose Postgres provider (Supabase / Neon)
-- [ ] Create database
-- [ ] Create tables:
-- [ ] `users`
-- [ ] `sleep_summary`
-- [ ] `daily_physiology`
-- [ ] `mood_labels`
-- [ ] `predictions`
-- [ ] Add indexes on `(user_id, date)`
-- [ ] Write sanity SQL queries
+- [X] Choose Postgres provider (Supabase)
+- [X] Create database
+- [X] Create tables:
+- [X] `users`
+- [X] `sleep_summary`
+- [X] `daily_physiology`
+- [X] `mood_labels`
+- [X] `predictions`
+- [X] Add indexes on `(user_id, date)`
+- [X] Write sanity SQL queries
 
 **Gate**
-- [ ] Can insert fake daily data
-- [ ] Can query by date range
-- [ ] No assumptions about single-user baked in
+- [X] Can insert fake daily data
+- [X] Can query by date range
+- [X] No assumptions about single-user baked in
 
 ---
 
