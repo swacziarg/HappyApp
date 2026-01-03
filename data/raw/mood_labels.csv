@@ -1,0 +1,83 @@
+user_id,date,mood,note
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-08-28,3,normal day
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-08-29,4,good energy
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-08-31,3,okay
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-02,3,average
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-03,4,productive day
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-05,2,poor sleep
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-06,2,tired
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-07,3,recovering
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-09,4,good focus
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-10,3,normal
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-12,2,stressful
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-13,3,okay
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-15,4,good mood
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-16,3,average
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-18,2,low energy
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-19,3,fine
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-21,4,good weekend
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-22,3,back to routine
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-24,2,poor sleep
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-25,3,better
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-27,4,feeling good
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-28,3,average
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-09-30,2,drained
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-02,3,okay
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-03,4,good momentum
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-05,3,normal
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-07,2,tired and stressed
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-08,3,recovering
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-10,4,solid day
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-12,3,okay
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-14,2,overworked
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-15,3,better
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-17,4,good energy
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-18,3,average
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-20,2,low motivation
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-21,3,okay
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-23,4,productive
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-24,3,fine
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-26,2,tired
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-27,3,okay
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-29,4,good day
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-10-30,3,normal
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-01,3,weekend
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-03,2,poor sleep
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-04,3,better
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-06,4,good focus
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-07,3,okay
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-09,2,drained
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-10,3,recovering
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-12,4,solid
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-13,3,average
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-15,2,stressful
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-16,3,okay
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-18,4,good mood
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-19,3,fine
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-21,2,low energy
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-22,3,better
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-24,4,good day
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-25,3,normal
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-27,4,holiday mood
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-28,3,okay
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-11-30,2,drained
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-02,3,average
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-03,4,good energy
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-05,3,okay
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-07,2,poor sleep
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-08,3,better
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-10,4,productive
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-11,3,average
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-13,2,low energy
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-14,3,okay
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-16,4,good focus
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-17,3,fine
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-19,2,stressed
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-20,3,better
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-22,4,holiday break
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-23,3,okay
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-25,4,christmas
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-26,3,tired but fine
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-28,2,end of year fatigue
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-29,3,okay
+b1101f5b-a68d-4cb9-bf48-bfc4697a761a,2025-12-30,3,winding down

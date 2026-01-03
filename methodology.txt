@@ -1,0 +1,180 @@
+====================================================
+Garmin → Mood App
+Phase 4 Methodology (Chicago Author–Date)
+====================================================
+
+Objective
+---------
+This project implements a deterministic, rules-based daily mood inference system using
+physiological features derived from consumer wearable data (Garmin). The goal is to
+estimate daily subjective mood on a bounded 1–5 wellbeing scale, represented internally 
+as a continuous score and optionally rendered as an ordinal value for display using 
+interpretable, person-relative signals grounded in peer-reviewed research linking sleep, 
+autonomic nervous system activity, stress, and physical activity to affective and wellbeing outcomes.
+
+This methodology prioritizes:
+1) Interpretability over predictive opacity
+2) Within-person normalization over population models
+3) Physiological plausibility supported by empirical literature
+
+The system is explicitly non-clinical and non-diagnostic.
+
+Conceptual Framework
+--------------------
+Daily mood is modeled as an emergent state influenced by short-term physiological
+recovery, stress load, and behavioral activity. Wearable-derived metrics are treated
+as *proxies* for underlying regulatory processes (e.g., autonomic balance, sleep
+homeostasis), which are known to covary with affective experience.
+
+Rather than predicting emotion categories, the system estimates *daily wellbeing
+valence* on a five-point ordinal scale ranging from poor to excellent.
+
+Feature Selection Rationale (Literature-Grounded)
+-------------------------------------------------
+
+1. Sleep Metrics
+---------------
+Sleep duration, quality, and deviation from individual sleep norms are among the most
+robust physiological predictors of next-day affect and emotional regulation.
+
+Empirical evidence demonstrates that insufficient or disturbed sleep is associated
+with increased negative affect, reduced positive affect, impaired emotion regulation,
+and elevated stress reactivity (Watson et al. 2015; Short et al. 2015; Kölling et al. 2024).
+
+Accordingly, this system incorporates:
+- Sleep debt relative to baseline
+- Percent deviation from personal sleep norms
+
+These features are assigned relatively high weight in mood inference.
+
+2. Heart Rate Variability (HRV)
+-------------------------------
+Heart rate variability (particularly RMSSD) is widely interpreted as a marker of
+parasympathetic activity and autonomic flexibility. Lower HRV has been associated with
+greater stress, reduced emotional regulation capacity, and vulnerability to negative
+affective states (Thayer, Åhs, Fredrikson, Sollers, and Wager 2012).
+
+Studies using wearable-derived HRV measurements show meaningful correlations with
+self-reported stress, anxiety, and depressive symptoms, despite device-specific noise
+(Forte et al. 2024; Shaffer and Ginsberg 2017).
+
+In this system:
+- HRV is normalized using a rolling personal baseline
+- Deviations are interpreted directionally (lower-than-usual HRV → lower mood signal)
+
+3. Resting Heart Rate (RHR)
+--------------------------
+Resting heart rate reflects cardiovascular and autonomic load. Elevated RHR relative
+to baseline is associated with stress, illness, poor recovery, and sympathetic dominance
+(Böhm et al. 2015).
+
+While RHR is not a direct measure of mood, its deviation from individual norms provides
+supporting evidence of physiological strain and is treated as a secondary modifier.
+
+4. Stress Indices (Wearable-Derived)
+------------------------------------
+Consumer wearables estimate stress primarily via HRV-derived algorithms. Validation
+studies indicate that such stress scores reliably differentiate rest from stress states
+and correlate with laboratory-based physiological stress markers (Hernando et al. 2018;
+Mest et al. 2024).
+
+The system uses stress percentiles relative to personal baseline, rather than raw
+values, to preserve interpretability and robustness to scale artifacts.
+
+5. Physical Activity
+--------------------
+Physical activity is associated with improved mood and affect regulation in population
+studies, though the magnitude and direction of effects vary by context, intensity, and
+individual differences (Reed and Buck 2009).
+
+Accordingly, activity features (steps, active minutes) are treated as *modifiers* rather
+than primary drivers of mood inference.
+
+Normalization Strategy
+----------------------
+All physiological features are normalized using a rolling 28-day personal baseline,
+excluding the current day, to prevent future data leakage.
+
+This within-person normalization approach is supported by affective science literature,
+which emphasizes that deviations from individual norms are more predictive of mood than
+absolute population thresholds (Fisher and Boswell 2016).
+
+Missing values contribute no positive or negative signal but reduce inference confidence.
+
+Inference Model
+---------------
+Mood inference follows a bounded additive model:
+
+1. Initialize daily mood score at a neutral baseline (3.0)
+2. Apply feature-specific deltas based on direction and magnitude
+3. Clamp the resulting score to the interval [1.0, 5.0]
+4. Preserve the resulting value as a continuous wellbeing estimate
+
+Discrete (integer) mood values may optionally be derived from the continuous score
+(e.g., via rounding) for user-facing presentation, but all inference and downstream
+analysis operate on the continuous representation.
+
+Confidence Estimation
+---------------------
+Confidence is estimated heuristically based on feature availability:
+- High confidence: ≥ 5 non-null features
+- Medium confidence: 3–4 features
+- Low confidence: ≤ 2 features
+
+This avoids overconfidence when data coverage is sparse.
+
+Explanation Generation
+----------------------
+Each inference includes a human-readable explanation enumerating per-feature
+contributions (e.g., "Below-baseline HRV suggests increased autonomic strain").
+
+This aligns with explainable AI principles and improves user trust and debuggability
+(Doshi-Velez and Kim 2017).
+
+Limitations
+-----------
+- Wearable-derived physiological signals are correlational, not causal indicators of
+  mood or mental health.
+- HRV and stress metrics are sensitive to confounds such as exercise, illness, and
+  excitement unrelated to negative affect.
+- Single-day predictions should be interpreted cautiously; trends are more reliable
+  than isolated values.
+- The system is not intended for clinical diagnosis or treatment guidance.
+
+References (Chicago Author–Date)
+--------------------------------
+Böhm, Michael, et al. 2015. "Resting heart rate: risk indicator and emerging risk factor
+in cardiovascular disease." *American Journal of Medicine* 128 (3): 219–28.
+
+Doshi-Velez, Finale, and Been Kim. 2017. "Towards a rigorous science of interpretable
+machine learning." *arXiv preprint* arXiv:1702.08608.
+
+Fisher, Aaron J., and James F. Boswell. 2016. "Enhancing the personalization of
+psychotherapy with dynamic assessment and modeling." *Assessment* 23 (4): 496–506.
+
+Forte, Giovanni, et al. 2024. "Heart rate variability and mental health: A systematic
+review of wearable-based studies." *Frontiers in Psychiatry* 15: 1371946.
+
+Hernando, Diego, et al. 2018. "Validation of the Apple Watch for heart rate variability
+measurements during relax and mental stress." *IEEE Journal of Biomedical and Health
+Informatics* 22 (6): 1754–63.
+
+Kölling, Nicola, et al. 2024. "Associations between sleep characteristics and daily
+affective states measured via wearable sensors." *Sensors* 24 (14): 4701.
+
+Reed, Julian, and Suzanne Buck. 2009. "The effect of regular aerobic exercise on positive-
+activated affect: A meta-analysis." *Psychology of Sport and Exercise* 10 (6): 581–94.
+
+Shaffer, Fred, and J. P. Ginsberg. 2017. "An overview of heart rate variability metrics and
+norms." *Frontiers in Public Health* 5: 258.
+
+Short, Michelle A., et al. 2015. "Sleep duration and mood in adolescents: Daily
+associations." *Journal of Adolescence* 40: 72–80.
+
+Thayer, Julian F., Fredrik Åhs, Mats Fredrikson, John J. Sollers III, and Tor D. Wager.
+2012. "A meta-analysis of heart rate variability and neuroimaging studies: Implications
+for heart–brain connections." *Neuroscience & Biobehavioral Reviews* 36 (2): 747–56.
+
+Watson, Nathan F., et al. 2015. "Sleep duration and depressive symptoms: A population
+study." *Sleep* 38 (2): 273–81.
+
