@@ -72,20 +72,20 @@
 
 **Goal:** Convert raw metrics into interpretable signals.
 
-- [ ] Create daily feature extraction script
-- [ ] Compute:
-- [ ] HRV deviation vs rolling baseline
-- [ ] Sleep debt vs baseline
-- [ ] Resting HR delta
-- [ ] Stress percentile
-- [ ] Activity over/under baseline
-- [ ] Store daily feature vectors
-- [ ] Log intermediate values for debugging
+- [X] Create daily feature extraction script
+- [X] Compute:
+- [X] HRV deviation vs rolling baseline
+- [X] Sleep debt vs baseline
+- [X] Resting HR delta
+- [X] Stress percentile
+- [X] Activity over/under baseline
+- [X] Store daily feature vectors
+- [X] Log intermediate values for debugging
 
 **Gate**
-- [ ] Each day outputs a clean feature vector
-- [ ] Baselines update correctly
-- [ ] Feature values look reasonable to a human
+- [~] Each day outputs a clean feature vector
+- [X] Baselines update correctly
+- [X] Feature values look reasonable to a human
 
 ---
 
