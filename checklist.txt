@@ -93,16 +93,16 @@
 
 **Goal:** Produce explainable mood estimates.
 
-- [ ] Define mood scale (1–5)
-- [ ] Write scoring rules
-- [ ] Apply penalties/boosts
-- [ ] Generate explanation text
-- [ ] Output confidence level
+- [X] Define mood scale (1–5)
+- [X] Write scoring rules
+- [X] Apply penalties/boosts
+- [X] Generate explanation text
+- [X] Output confidence level
 
 **Gate**
-- [ ] Can explain why any day is high or low
-- [ ] No NaNs or silent failures
-- [ ] Single-feature changes affect output predictably
+- [X] Can explain why any day is high or low
+- [X] No NaNs or silent failures
+- [X] Single-feature changes affect output predictably
 
 ---
 
