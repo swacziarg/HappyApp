@@ -51,20 +51,20 @@
 
 **Goal:** Work with real Garmin data before APIs.
 
-- [ ] Export Garmin sleep data (CSV / JSON)
-- [ ] Export HR / HRV / stress data
-- [ ] Write import script
-- [ ] Normalize dates
-- [ ] Normalize units
-- [ ] Handle missing values
-- [ ] Map fields → DB schema
-- [ ] Import 7–14 days of data
-- [ ] Ensure idempotent imports
+- [X] Export Garmin sleep data (CSV / JSON)
+- [X] Export HR / HRV / stress data
+- [X] Write import script
+- [X] Normalize dates
+- [X] Normalize units
+- [X] Handle missing values
+- [X] Map fields → DB schema
+- [X] Import 7–14 days of data
+- [X] Ensure idempotent imports
 
 **Gate**
-- [ ] DB reflects real historical data
-- [ ] Re-import does not duplicate rows
-- [ ] Missing values don’t crash scripts
+- [X] DB reflects real historical data
+- [X] Re-import does not duplicate rows
+- [X] Missing values don’t crash scripts
 
 ---
 

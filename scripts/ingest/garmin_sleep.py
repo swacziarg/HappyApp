@@ -110,9 +110,13 @@ def main():
     matches = list(sleep_dir.glob("*sleepData.json"))
     if not matches:
         raise FileNotFoundError(f"No sleepData.json found in {sleep_dir}")
+    
+    records = []
 
-    records = load_sleep_file(matches[0])
-    print(f"Loaded {len(records)} sleep records")
+    for path in matches:
+        file_records = load_sleep_file(path)
+        print(f"Loaded {len(file_records)} records from {path.name}")
+        records.extend(file_records)
 
     rows = []
     for r in records:
@@ -125,8 +129,6 @@ def main():
                 user_id=USER_ID
             )
         )
-
-    rows = rows[:14]  # IMPORTANT: limit first run
 
     with get_conn() as conn:
         with conn.cursor() as cur:

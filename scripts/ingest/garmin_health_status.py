@@ -1,7 +1,8 @@
-from scripts.ingest.db import get_conn
-from pathlib import Path
 import json
+from pathlib import Path
+from scripts.ingest.db import get_conn
 
+USER_ID = "b1101f5b-a68d-4cb9-bf48-bfc4697a761a"
 
 HEALTH_STATUS_UPSERT_SQL = """
 INSERT INTO daily_physiology (
@@ -28,49 +29,37 @@ DO UPDATE SET
   source = EXCLUDED.source;
 """
 
-
-def normalize_health_status_record(raw: dict, user_id: str):
-    metrics = raw.get("metrics", [])
-
+def normalize_health_status_record(raw: dict):
     resting_hr = None
     respiration_rate = None
     hrv_rmssd = None
 
-    for m in metrics:
-        metric_type = m.get("type")
+    for m in raw.get("metrics", []):
         value = m.get("value")
-
         if value is None:
             continue
 
-        if metric_type == "HR":
+        if m.get("type") == "HR":
             resting_hr = int(value)
 
-        elif metric_type == "RESPIRATION":
+        elif m.get("type") == "RESPIRATION":
             respiration_rate = float(value)
 
-        elif metric_type == "HRV":
-            # Garmin healthStatus HRV is RMSSD-style nightly HRV
+        elif m.get("type") == "HRV":
             hrv_rmssd = float(value)
 
     return {
-        "user_id": user_id,
+        "user_id": USER_ID,
         "date": raw.get("calendarDate"),
-
         "resting_hr": resting_hr,
         "respiration_rate": respiration_rate,
         "hrv_rmssd": hrv_rmssd,
-
         "source": "garmin",
     }
 
 
-USER_ID = "b1101f5b-a68d-4cb9-bf48-bfc4697a761a"
-
-
 def main():
     repo_root = Path(__file__).resolve().parents[2]
-
     wellness_dir = (
         repo_root
         / "data"
@@ -80,27 +69,24 @@ def main():
         / "DI-Connect-Wellness"
     )
 
-    matches = list(wellness_dir.glob("*healthStatusData.json"))
-    if not matches:
+    files = list(wellness_dir.glob("*healthStatusData.json"))
+    if not files:
         raise FileNotFoundError("No healthStatusData.json found")
+    records = []
 
-    records = json.load(open(matches[0]))
-    print(f"Loaded {len(records)} health status records")
+    for path in files:
+        file_records = json.load(open(path))
+        print(f"Loaded {len(file_records)} records from {path.name}")
+        records.extend(file_records)
 
-    rows = []
-    for r in records:
-        normalized = normalize_health_status_record(
-            raw=r,
-            user_id=USER_ID
-        )
-        rows.append(normalized)
+    rows = [normalize_health_status_record(r) for r in records]
 
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.executemany(HEALTH_STATUS_UPSERT_SQL, rows)
         conn.commit()
 
-    print(f"Upserted {len(rows)} daily physiology rows")
+    print(f"Upserted {len(rows)} daily_physiology rows")
 
 
 if __name__ == "__main__":
