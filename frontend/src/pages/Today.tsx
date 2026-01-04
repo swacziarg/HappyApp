@@ -38,22 +38,27 @@ const API_BASE = "http://localhost:8000";
 /* ───────── Date helpers ───────── */
 
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return new Date().toLocaleDateString("en-CA");
 }
 
+
 function addDays(date: string, delta: number) {
-  const d = new Date(date);
+  const [year, month, day] = date.split("-").map(Number);
+  const d = new Date(year, month - 1, day); // LOCAL date
   d.setDate(d.getDate() + delta);
-  return d.toISOString().slice(0, 10);
+  return d.toLocaleDateString("en-CA"); // YYYY-MM-DD
 }
 
 function formatDate(date: string) {
-  return new Date(date).toLocaleDateString(undefined, {
+  const [year, month, day] = date.split("-").map(Number);
+  const d = new Date(year, month - 1, day); // LOCAL date
+  return d.toLocaleDateString(undefined, {
     weekday: "short",
     month: "short",
     day: "numeric",
   });
 }
+
 
 export default function Today() {
   const [currentDate, setCurrentDate] = useState<string>(todayISO);
