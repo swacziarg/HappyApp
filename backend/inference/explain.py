@@ -1,4 +1,3 @@
-# backend/inference/explain.py
 
 def explain_feature(name, value, delta, reason):
     if value is None or delta == 0:

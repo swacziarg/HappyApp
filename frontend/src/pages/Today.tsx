@@ -1,9 +1,5 @@
 import { useEffect, useState, type JSX } from "react";
 
-/* ────────────────────────
-   Types
-──────────────────────── */
-
 type Confidence = "low" | "medium" | "high";
 
 type TodayOk = {
@@ -37,24 +33,39 @@ type HistoryDay = {
   status: "available" | "missing";
 };
 
-/* ────────────────────────
-   Config
-──────────────────────── */
-
 const API_BASE = "http://localhost:8000";
 
-/* ────────────────────────
-   Component
-──────────────────────── */
+/* ───────── Date helpers ───────── */
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function addDays(date: string, delta: number) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + delta);
+  return d.toISOString().slice(0, 10);
+}
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
 
 export default function Today() {
+  const [currentDate, setCurrentDate] = useState<string>(todayISO);
   const [state, setState] = useState<TodayState>({ status: "loading" });
 
-  /* ───────── Fetch (dev: Dec 20 via /history) ───────── */
+  /* ───────── Fetch on date change ───────── */
 
   useEffect(() => {
-    fetch(`${API_BASE}/history?start=2025-12-21&end=2025-12-21`)
-      .then((res: Response) => {
+    setState({ status: "loading" });
+
+    fetch(`${API_BASE}/history?start=${currentDate}&end=${currentDate}`)
+      .then((res) => {
         if (!res.ok) {
           throw new Error("Failed to fetch /history");
         }
@@ -79,7 +90,6 @@ export default function Today() {
           return;
         }
 
-        // Explicit history → today mapping
         setState({
           status: "ok",
           date: day.date,
@@ -91,7 +101,7 @@ export default function Today() {
       .catch((err: Error) => {
         setState({ status: "error", message: err.message });
       });
-  }, []);
+  }, [currentDate]);
 
   /* ───────── Derived presentation ───────── */
 
@@ -147,6 +157,27 @@ export default function Today() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-md">
+        {/* Date navigation */}
+        <div className="flex items-center justify-between mb-4">
+          <button
+            className="px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200"
+            onClick={() => setCurrentDate((d) => addDays(d, -1))}
+          >
+            ←
+          </button>
+
+          <span className="text-sm font-medium text-gray-700">
+            {formatDate(currentDate)}
+          </span>
+
+          <button
+            className="px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200"
+            onClick={() => setCurrentDate((d) => addDays(d, 1))}
+          >
+            →
+          </button>
+        </div>
+
         {/* Mood */}
         <div className="flex justify-center mb-2">
           <span className="text-7xl">{moodEmoji}</span>
@@ -161,7 +192,7 @@ export default function Today() {
 
         {/* Title */}
         <h1 className="text-center text-xl font-semibold text-gray-900">
-          Mood Today
+          Mood
         </h1>
 
         {/* Explanation */}

@@ -1,4 +1,3 @@
-# backend/inference/infer.py
 
 from inference.mood_rules import (
     clamp,

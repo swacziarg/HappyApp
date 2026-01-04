@@ -17,7 +17,7 @@ def sleep_contribution(row):
         else:
             delta -= 0.8
 
-    pct = row.get("sleep_vs_baseline_pct")
+    pct = 100*row.get("sleep_vs_baseline_pct")
     if pct is not None:
         if pct >= 10:
             delta += 0.3
@@ -71,7 +71,7 @@ def stress_contribution(row):
 def activity_contribution(row):
     delta = 0.0
 
-    steps = row.get("steps_vs_baseline_pct")
+    steps = 100*row.get("steps_vs_baseline_pct")
     if steps is not None:
         if steps >= 20:
             delta += 0.3
