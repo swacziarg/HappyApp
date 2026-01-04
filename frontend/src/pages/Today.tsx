@@ -81,9 +81,11 @@ export default function Today() {
   const [visibleMonth, setVisibleMonth] = useState(() =>
     parseLocalDate(todayISO())
   );
+  const [showCalendar, setShowCalendar] = useState(false);
 
   const [state, setState] = useState<TodayState>({ status: "loading" });
   const [history, setHistory] = useState<HistoryDay[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const didSelectDateRef = useRef(false);
 
@@ -96,10 +98,10 @@ export default function Today() {
     didSelectDateRef.current = false;
   }, [currentDate]);
 
-  /* ───────── Fetch selected day ───────── */
+  /* ───────── Fetch selected day (stale-while-revalidate) ───────── */
 
   useEffect(() => {
-    setState({ status: "loading" });
+    setIsRefreshing(true);
 
     fetch(`${API_BASE}/history?start=${currentDate}&end=${currentDate}`)
       .then((r) => r.json() as Promise<HistoryApiResponse>)
@@ -110,17 +112,18 @@ export default function Today() {
             status: "not_computed",
             reason: "No prediction for this date",
           });
-          return;
+        } else {
+          setState({
+            status: "ok",
+            date: day.date,
+            predicted_mood: day.predicted_mood,
+            confidence: day.confidence,
+            explanation: day.explanation,
+          });
         }
-        setState({
-          status: "ok",
-          date: day.date,
-          predicted_mood: day.predicted_mood,
-          confidence: day.confidence,
-          explanation: day.explanation,
-        });
       })
-      .catch((e) => setState({ status: "error", message: e.message }));
+      .catch((e) => setState({ status: "error", message: e.message }))
+      .finally(() => setIsRefreshing(false));
   }, [currentDate]);
 
   /* ───────── Fetch month for calendar coloring ───────── */
@@ -145,7 +148,7 @@ export default function Today() {
             moodBucket(d.predicted_mood) === "low"
         )
         .map((d) => parseLocalDate(d.date)),
-  
+
       medium: history
         .filter(
           (d) =>
@@ -154,7 +157,7 @@ export default function Today() {
             moodBucket(d.predicted_mood) === "medium"
         )
         .map((d) => parseLocalDate(d.date)),
-  
+
       high: history
         .filter(
           (d) =>
@@ -163,28 +166,22 @@ export default function Today() {
             moodBucket(d.predicted_mood) === "high"
         )
         .map((d) => parseLocalDate(d.date)),
-  
-      /** 👇 NEW **/
+
       lowConfidence: history
         .filter((d) => d.status === "available" && d.confidence === "low")
         .map((d) => parseLocalDate(d.date)),
-  
+
       missing: history
         .filter((d) => d.status === "missing")
         .map((d) => parseLocalDate(d.date)),
     };
   }, [history]);
-  
 
   /* ───────── Derived UI ───────── */
 
   let emoji = "🙂";
   let explanationBlock: JSX.Element | null = null;
   let moodText: JSX.Element | null = null;
-
-  if (state.status === "loading") {
-    explanationBlock = <p className="text-center text-sm text-gray-500">Loading…</p>;
-  }
 
   if (state.status === "error") {
     explanationBlock = (
@@ -236,39 +233,49 @@ export default function Today() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-md space-y-4">
-        <DayPicker
-          mode="single"
-          month={visibleMonth}
-          onMonthChange={setVisibleMonth}
-          selected={parseLocalDate(currentDate)}
-          onSelect={(d) => {
-            if (!d) return;
-            didSelectDateRef.current = true;
-            setCurrentDate(d.toLocaleDateString("en-CA"));
-          }}
-          modifiers={modifiers}
-          modifiersClassNames={{
-            low: "bg-red-200",
-            medium: "bg-yellow-200",
-            high: "bg-green-200",
+        <button
+          onClick={() => setShowCalendar((v) => !v)}
+          className="w-full rounded-lg bg-gray-100 py-2 text-sm font-medium"
+        >
+          {showCalendar ? "Hide calendar" : "📅 Pick a date"}
+        </button>
 
-            lowConfidence:
-              "bg-gray-200 text-gray-400 opacity-60",
-
-            missing:
-              "text-gray-300 opacity-40",
-          }}
-          disabled={{ after: new Date() }}
-        />
+        {showCalendar && (
+          <DayPicker
+            mode="single"
+            month={visibleMonth}
+            onMonthChange={setVisibleMonth}
+            selected={parseLocalDate(currentDate)}
+            onSelect={(d) => {
+              if (!d) return;
+              didSelectDateRef.current = true;
+              setCurrentDate(d.toLocaleDateString("en-CA"));
+              setShowCalendar(false);
+            }}
+            modifiers={modifiers}
+            modifiersClassNames={{
+              low: "bg-red-200",
+              medium: "bg-yellow-200",
+              high: "bg-green-200",
+              lowConfidence: "bg-gray-200 text-gray-400 opacity-60",
+              missing: "text-gray-300 opacity-40",
+            }}
+            disabled={{ after: new Date() }}
+          />
+        )}
 
         <div className="flex items-center justify-between">
           <button
-            className="px-3 py-1 bg-gray-100 rounded-lg"
+            disabled={isRefreshing}
+            className="px-3 py-1 bg-gray-100 rounded-lg disabled:opacity-50"
             onClick={() => {
               didSelectDateRef.current = true;
               setCurrentDate((d) =>
-                new Date(parseLocalDate(d).setDate(parseLocalDate(d).getDate() - 1))
-                  .toLocaleDateString("en-CA")
+                new Date(
+                  parseLocalDate(d).setDate(
+                    parseLocalDate(d).getDate() - 1
+                  )
+                ).toLocaleDateString("en-CA")
               );
             }}
           >
@@ -278,12 +285,16 @@ export default function Today() {
           <span className="text-sm font-medium">{formatDate(currentDate)}</span>
 
           <button
-            className="px-3 py-1 bg-gray-100 rounded-lg"
+            disabled={isRefreshing}
+            className="px-3 py-1 bg-gray-100 rounded-lg disabled:opacity-50"
             onClick={() => {
               didSelectDateRef.current = true;
               setCurrentDate((d) =>
-                new Date(parseLocalDate(d).setDate(parseLocalDate(d).getDate() + 1))
-                  .toLocaleDateString("en-CA")
+                new Date(
+                  parseLocalDate(d).setDate(
+                    parseLocalDate(d).getDate() + 1
+                  )
+                ).toLocaleDateString("en-CA")
               );
             }}
           >
@@ -291,7 +302,18 @@ export default function Today() {
           </button>
         </div>
 
-        <div className="flex justify-center text-7xl">{emoji}</div>
+        {isRefreshing && (
+          <p className="text-center text-xs text-gray-400">Updating…</p>
+        )}
+
+        <div
+          className={`flex justify-center text-7xl transition-opacity ${
+            isRefreshing ? "opacity-60" : ""
+          }`}
+        >
+          {emoji}
+        </div>
+
         {moodText}
 
         <h1 className="text-center text-xl font-semibold">Mood</h1>
