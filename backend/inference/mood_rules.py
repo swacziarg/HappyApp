@@ -1,4 +1,3 @@
-
 def clamp(value, min_value=1.0, max_value=5.0):
     return max(min_value, min(max_value, value))
 
@@ -6,6 +5,7 @@ def clamp(value, min_value=1.0, max_value=5.0):
 def sleep_contribution(row):
     delta = 0.0
 
+    # --- Sleep debt ---
     debt = row.get("sleep_debt_minutes")
     if debt is not None:
         if debt <= 0:
@@ -17,8 +17,10 @@ def sleep_contribution(row):
         else:
             delta -= 0.8
 
-    pct = 100*row.get("sleep_vs_baseline_pct")
+    # --- Sleep vs baseline pct ---
+    pct = row.get("sleep_vs_baseline_pct")
     if pct is not None:
+        pct *= 100
         if pct >= 10:
             delta += 0.3
         elif pct <= -10:
@@ -30,6 +32,7 @@ def sleep_contribution(row):
 def cardio_contribution(row):
     delta = 0.0
 
+    # --- HRV ---
     hrv = row.get("hrv_rmssd_zscore")
     if hrv is not None:
         if hrv >= 1.0:
@@ -41,6 +44,7 @@ def cardio_contribution(row):
         elif hrv <= -0.3:
             delta -= 0.4
 
+    # --- Resting HR ---
     rhr = row.get("resting_hr_delta")
     if rhr is not None:
         if rhr <= -3:
@@ -71,13 +75,16 @@ def stress_contribution(row):
 def activity_contribution(row):
     delta = 0.0
 
-    steps = 100*row.get("steps_vs_baseline_pct")
+    # --- Steps ---
+    steps = row.get("steps_vs_baseline_pct")
     if steps is not None:
+        steps *= 100
         if steps >= 20:
             delta += 0.3
         elif steps <= -20:
             delta -= 0.2
 
+    # --- Active minutes ---
     active = row.get("active_minutes_delta")
     if active is not None:
         if active >= 20:

@@ -40,7 +40,7 @@ type HistoryDay = {
 
 const API_BASE = "http://localhost:8000";
 
-/* ───────── Local-date helpers ───────── */
+/* ───────── Date helpers ───────── */
 
 function todayISO() {
   return new Date().toLocaleDateString("en-CA");
@@ -68,8 +68,6 @@ function monthBoundsFromDate(d: Date) {
   };
 }
 
-/* ───────── Mood buckets ───────── */
-
 function moodBucket(mood: number) {
   if (mood <= 2) return "low";
   if (mood < 4) return "medium";
@@ -79,28 +77,22 @@ function moodBucket(mood: number) {
 /* ───────── Component ───────── */
 
 export default function Today() {
-  const [currentDate, setCurrentDate] = useState<string>(() => todayISO());
-  const [visibleMonth, setVisibleMonth] = useState<Date>(() =>
+  const [currentDate, setCurrentDate] = useState(todayISO);
+  const [visibleMonth, setVisibleMonth] = useState(() =>
     parseLocalDate(todayISO())
   );
 
   const [state, setState] = useState<TodayState>({ status: "loading" });
   const [history, setHistory] = useState<HistoryDay[]>([]);
 
-  /** Tracks whether the user intentionally selected a date */
   const didSelectDateRef = useRef(false);
 
-  /* ───────── Sync calendar only after date selection ───────── */
+  /* ───────── Sync calendar after date selection ───────── */
 
   useEffect(() => {
     if (!didSelectDateRef.current) return;
-
-    const selected = parseLocalDate(currentDate);
-
-    setVisibleMonth(
-      new Date(selected.getFullYear(), selected.getMonth(), 1)
-    );
-
+    const d = parseLocalDate(currentDate);
+    setVisibleMonth(new Date(d.getFullYear(), d.getMonth(), 1));
     didSelectDateRef.current = false;
   }, [currentDate]);
 
@@ -110,21 +102,16 @@ export default function Today() {
     setState({ status: "loading" });
 
     fetch(`${API_BASE}/history?start=${currentDate}&end=${currentDate}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch /history");
-        return res.json() as Promise<HistoryApiResponse>;
-      })
+      .then((r) => r.json() as Promise<HistoryApiResponse>)
       .then((data) => {
         const day = data.days?.[0];
-
         if (!day || day.status !== "available") {
           setState({
             status: "not_computed",
-            reason: "No prediction computed for this date",
+            reason: "No prediction for this date",
           });
           return;
         }
-
         setState({
           status: "ok",
           date: day.date,
@@ -133,19 +120,16 @@ export default function Today() {
           explanation: day.explanation,
         });
       })
-      .catch((err: Error) => {
-        setState({ status: "error", message: err.message });
-      });
+      .catch((e) => setState({ status: "error", message: e.message }));
   }, [currentDate]);
 
   /* ───────── Fetch month for calendar coloring ───────── */
 
   useEffect(() => {
     const { start, end } = monthBoundsFromDate(visibleMonth);
-
     fetch(`${API_BASE}/history?start=${start}&end=${end}`)
-      .then((res) => res.json() as Promise<HistoryApiResponse>)
-      .then((data) => setHistory(data.days ?? []))
+      .then((r) => r.json() as Promise<HistoryApiResponse>)
+      .then((d) => setHistory(d.days ?? []))
       .catch(() => setHistory([]));
   }, [visibleMonth]);
 
@@ -155,128 +139,151 @@ export default function Today() {
     return {
       low: history
         .filter(
-          (d) => d.status === "available" && moodBucket(d.predicted_mood) === "low"
+          (d) =>
+            d.status === "available" &&
+            d.confidence !== "low" &&
+            moodBucket(d.predicted_mood) === "low"
         )
         .map((d) => parseLocalDate(d.date)),
-
+  
       medium: history
         .filter(
           (d) =>
-            d.status === "available" && moodBucket(d.predicted_mood) === "medium"
+            d.status === "available" &&
+            d.confidence !== "low" &&
+            moodBucket(d.predicted_mood) === "medium"
         )
         .map((d) => parseLocalDate(d.date)),
-
+  
       high: history
         .filter(
-          (d) => d.status === "available" && moodBucket(d.predicted_mood) === "high"
+          (d) =>
+            d.status === "available" &&
+            d.confidence !== "low" &&
+            moodBucket(d.predicted_mood) === "high"
         )
+        .map((d) => parseLocalDate(d.date)),
+  
+      /** 👇 NEW **/
+      lowConfidence: history
+        .filter((d) => d.status === "available" && d.confidence === "low")
+        .map((d) => parseLocalDate(d.date)),
+  
+      missing: history
+        .filter((d) => d.status === "missing")
         .map((d) => parseLocalDate(d.date)),
     };
   }, [history]);
+  
 
   /* ───────── Derived UI ───────── */
 
-  let moodEmoji = "🙂";
-  let moodDisplay: string | null = null;
+  let emoji = "🙂";
   let explanationBlock: JSX.Element | null = null;
-  let confidenceText: Confidence | null = null;
+  let moodText: JSX.Element | null = null;
 
   if (state.status === "loading") {
-    explanationBlock = (
-      <p className="text-center text-sm text-gray-500">Loading…</p>
-    );
+    explanationBlock = <p className="text-center text-sm text-gray-500">Loading…</p>;
   }
 
   if (state.status === "error") {
     explanationBlock = (
-      <p className="text-center text-sm text-red-600">
-        Error: {state.message}
-      </p>
+      <p className="text-center text-sm text-red-600">{state.message}</p>
     );
   }
 
   if (state.status === "not_computed") {
     explanationBlock = (
-      <p className="text-center text-sm text-gray-600">
-        Not computed: {state.reason}
-      </p>
+      <p className="text-center text-sm text-gray-600">{state.reason}</p>
     );
   }
 
   if (state.status === "ok") {
-    const mood = state.predicted_mood;
-    moodDisplay = `${mood.toFixed(1)} / 5.0`;
-    confidenceText = state.confidence;
+    const { predicted_mood, confidence } = state;
 
-    if (mood <= 2) moodEmoji = "☹️";
-    else if (mood < 3) moodEmoji = "😐";
-    else if (mood < 4) moodEmoji = "🙂";
-    else moodEmoji = "😊";
+    if (predicted_mood <= 2) emoji = "☹️";
+    else if (predicted_mood < 3) emoji = "😐";
+    else if (predicted_mood < 4) emoji = "🙂";
+    else emoji = "😊";
 
-    explanationBlock = (
-      <ul className="mt-3 space-y-1 text-center text-sm text-gray-600">
-        {state.explanation.map((line, i) => (
-          <li key={i}>{line}</li>
-        ))}
-      </ul>
-    );
+    if (confidence === "low") {
+      moodText = (
+        <p className="text-center text-sm text-gray-400 italic">
+          Not enough data to personalize this day
+        </p>
+      );
+      emoji = "⚪️";
+    } else {
+      moodText = (
+        <p className="text-center text-sm text-gray-500">
+          {predicted_mood.toFixed(1)} / 5.0
+        </p>
+      );
+    }
+
+    explanationBlock =
+      confidence === "low" ? null : (
+        <ul className="mt-3 space-y-1 text-center text-sm text-gray-600">
+          {state.explanation.map((e, i) => (
+            <li key={i}>{e}</li>
+          ))}
+        </ul>
+      );
   }
 
   /* ───────── Render ───────── */
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-md space-y-4">
         <DayPicker
           mode="single"
           month={visibleMonth}
           onMonthChange={setVisibleMonth}
           selected={parseLocalDate(currentDate)}
-          onSelect={(date) => {
-            if (!date) return;
+          onSelect={(d) => {
+            if (!d) return;
             didSelectDateRef.current = true;
-            setCurrentDate(date.toLocaleDateString("en-CA"));
+            setCurrentDate(d.toLocaleDateString("en-CA"));
           }}
           modifiers={modifiers}
           modifiersClassNames={{
             low: "bg-red-200",
             medium: "bg-yellow-200",
             high: "bg-green-200",
+
+            lowConfidence:
+              "bg-gray-200 text-gray-400 opacity-60",
+
+            missing:
+              "text-gray-300 opacity-40",
           }}
           disabled={{ after: new Date() }}
         />
 
         <div className="flex items-center justify-between">
           <button
-            className="px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200"
+            className="px-3 py-1 bg-gray-100 rounded-lg"
             onClick={() => {
               didSelectDateRef.current = true;
               setCurrentDate((d) =>
-                new Date(
-                  parseLocalDate(d).setDate(
-                    parseLocalDate(d).getDate() - 1
-                  )
-                ).toLocaleDateString("en-CA")
+                new Date(parseLocalDate(d).setDate(parseLocalDate(d).getDate() - 1))
+                  .toLocaleDateString("en-CA")
               );
             }}
           >
             ←
           </button>
 
-          <span className="text-sm font-medium text-gray-700">
-            {formatDate(currentDate)}
-          </span>
+          <span className="text-sm font-medium">{formatDate(currentDate)}</span>
 
           <button
-            className="px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200"
+            className="px-3 py-1 bg-gray-100 rounded-lg"
             onClick={() => {
               didSelectDateRef.current = true;
               setCurrentDate((d) =>
-                new Date(
-                  parseLocalDate(d).setDate(
-                    parseLocalDate(d).getDate() + 1
-                  )
-                ).toLocaleDateString("en-CA")
+                new Date(parseLocalDate(d).setDate(parseLocalDate(d).getDate() + 1))
+                  .toLocaleDateString("en-CA")
               );
             }}
           >
@@ -284,30 +291,11 @@ export default function Today() {
           </button>
         </div>
 
-        <div className="flex justify-center">
-          <span className="text-7xl">{moodEmoji}</span>
-        </div>
+        <div className="flex justify-center text-7xl">{emoji}</div>
+        {moodText}
 
-        {moodDisplay && (
-          <p className="text-center text-sm text-gray-500">{moodDisplay}</p>
-        )}
-
-        <h1 className="text-center text-xl font-semibold text-gray-900">
-          Mood
-        </h1>
-
+        <h1 className="text-center text-xl font-semibold">Mood</h1>
         {explanationBlock}
-
-        <div className="my-4 h-px bg-gray-200" />
-
-        {confidenceText && (
-          <p className="text-center text-sm text-gray-500">
-            Confidence:{" "}
-            <span className="font-medium text-gray-700">
-              {confidenceText}
-            </span>
-          </p>
-        )}
       </div>
     </div>
   );

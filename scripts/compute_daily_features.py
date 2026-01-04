@@ -16,8 +16,11 @@ load_dotenv("backend/.env")
 DB_URL = os.getenv("DATABASE_URL")
 
 BASELINE_DAYS = 28
-MIN_BASELINE_DAYS = 7
+
+MIN_SLEEP_BASELINE_DAYS = 5
 MIN_HRV_DAYS = 10
+MIN_ACTIVITY_DAYS = 5
+MIN_STRESS_DAYS = 5
 
 logging.basicConfig(
     level=logging.INFO,
@@ -59,38 +62,57 @@ def fetch_all_dates(cur, user_id):
     return [row["date"] for row in cur.fetchall()]
 
 
-def fetch_baseline(cur, user_id, day):
-    start_date = day - timedelta(days=BASELINE_DAYS)
-
+def fetch_baseline(cur, user_id, start_date, end_date):
+    """
+    Calendar-driven baseline window (NOT anchored on sleep).
+    """
     cur.execute(
         """
         SELECT
+            d.date,
             ss.total_sleep_minutes,
             dp.hrv_rmssd,
             dp.resting_hr,
             da.steps,
             da.active_minutes,
             ds.avg_stress
-        FROM sleep_summary ss
+        FROM (
+            SELECT date FROM sleep_summary WHERE user_id = %s
+            UNION
+            SELECT date FROM daily_physiology WHERE user_id = %s
+            UNION
+            SELECT date FROM daily_activity WHERE user_id = %s
+            UNION
+            SELECT date FROM daily_stress WHERE user_id = %s
+        ) d
+        LEFT JOIN sleep_summary ss
+            ON ss.user_id = %s AND ss.date = d.date
         LEFT JOIN daily_physiology dp
-            ON ss.user_id = dp.user_id AND ss.date = dp.date
+            ON dp.user_id = %s AND dp.date = d.date
         LEFT JOIN daily_activity da
-            ON ss.user_id = da.user_id AND ss.date = da.date
+            ON da.user_id = %s AND da.date = d.date
         LEFT JOIN daily_stress ds
-            ON ss.user_id = ds.user_id
-           AND ss.date = ds.date
+            ON ds.user_id = %s
+           AND ds.date = d.date
            AND ds.stress_type = 'TOTAL'
-        WHERE ss.user_id = %s
-          AND ss.date >= %s
-          AND ss.date < %s;
+        WHERE d.date >= %s
+          AND d.date < %s
+        ORDER BY d.date;
         """,
-        (user_id, start_date, day),
+        (
+            user_id, user_id, user_id, user_id,
+            user_id, user_id, user_id, user_id,
+            start_date, end_date,
+        ),
     )
 
     return cur.fetchall()
 
 
 def fetch_today(cur, user_id, day):
+    """
+    Fetch whatever data exists for the day.
+    """
     cur.execute(
         """
         SELECT
@@ -100,22 +122,24 @@ def fetch_today(cur, user_id, day):
             da.steps,
             da.active_minutes,
             ds.avg_stress
-        FROM sleep_summary ss
+        FROM (
+            SELECT %s::date AS date
+        ) d
+        LEFT JOIN sleep_summary ss
+            ON ss.user_id = %s AND ss.date = d.date
         LEFT JOIN daily_physiology dp
-            ON ss.user_id = dp.user_id AND ss.date = dp.date
+            ON dp.user_id = %s AND dp.date = d.date
         LEFT JOIN daily_activity da
-            ON ss.user_id = da.user_id AND ss.date = da.date
+            ON da.user_id = %s AND da.date = d.date
         LEFT JOIN daily_stress ds
-            ON ss.user_id = ds.user_id
-           AND ss.date = ds.date
-           AND ds.stress_type = 'TOTAL'
-        WHERE ss.user_id = %s
-          AND ss.date = %s;
+            ON ds.user_id = %s
+           AND ds.date = d.date
+           AND ds.stress_type = 'TOTAL';
         """,
-        (user_id, day),
+        (day, user_id, user_id, user_id, user_id),
     )
 
-    return cur.fetchone()
+    return cur.fetchone() or {}
 
 
 def upsert_features(cur, user_id, day, features):
@@ -182,10 +206,7 @@ def percentile_rank(value, values):
     vals = sorted(v for v in values if v is not None)
     if value is None or not vals:
         return None
-
-    rank = np.searchsorted(vals, value, side="right")
-    return rank / len(vals)
-
+    return np.searchsorted(vals, value, side="right") / len(vals)
 
 def to_python(value):
     """
@@ -209,13 +230,9 @@ def main():
                 dates = fetch_all_dates(cur, user_id)
 
                 for day in dates:
-                    baseline = fetch_baseline(cur, user_id, day)
-                    if len(baseline) < MIN_BASELINE_DAYS:
-                        continue
-
+                    baseline_start = day - timedelta(days=BASELINE_DAYS)
+                    baseline = fetch_baseline(cur, user_id, baseline_start, day)
                     today = fetch_today(cur, user_id, day)
-                    if not today:
-                        continue
 
                     sleep_vals = [r["total_sleep_minutes"] for r in baseline]
                     hrv_vals = [r["hrv_rmssd"] for r in baseline]
@@ -236,45 +253,48 @@ def main():
                     }
 
                     # Sleep
-                    avg_sleep = mean(sleep_vals)
-                    if avg_sleep and today["total_sleep_minutes"]:
-                        features["sleep_debt_minutes"] = int(
-                            avg_sleep - today["total_sleep_minutes"]
-                        )
-                        features["sleep_vs_baseline_pct"] = (
-                            today["total_sleep_minutes"] / avg_sleep
-                        ) - 1
+                    if len([v for v in sleep_vals if v is not None]) >= MIN_SLEEP_BASELINE_DAYS:
+                        avg_sleep = mean(sleep_vals)
+                        if avg_sleep and today.get("total_sleep_minutes") is not None:
+                            features["sleep_debt_minutes"] = int(
+                                avg_sleep - today["total_sleep_minutes"]
+                            )
+                            features["sleep_vs_baseline_pct"] = (
+                                today["total_sleep_minutes"] / avg_sleep
+                            ) - 1
 
                     # HRV
                     if len([v for v in hrv_vals if v is not None]) >= MIN_HRV_DAYS:
                         hrv_mean = mean(hrv_vals)
                         hrv_std = std(hrv_vals)
-                        if hrv_std and today["hrv_rmssd"] is not None:
+                        if hrv_std and today.get("hrv_rmssd") is not None:
                             features["hrv_rmssd_zscore"] = (
                                 today["hrv_rmssd"] - hrv_mean
                             ) / hrv_std
 
                     # Resting HR
                     avg_rhr = mean(rhr_vals)
-                    if avg_rhr and today["resting_hr"] is not None:
+                    if avg_rhr and today.get("resting_hr") is not None:
                         features["resting_hr_delta"] = (
                             today["resting_hr"] - avg_rhr
                         )
 
                     # Stress
-                    features["stress_percentile"] = percentile_rank(
-                        today["avg_stress"], stress_vals
-                    )
+                    if len([v for v in stress_vals if v is not None]) >= MIN_STRESS_DAYS:
+                        features["stress_percentile"] = percentile_rank(
+                            today.get("avg_stress"), stress_vals
+                        )
 
                     # Activity
-                    avg_steps = mean(steps_vals)
-                    if avg_steps and today["steps"] is not None:
-                        features["steps_vs_baseline_pct"] = (
-                            today["steps"] / avg_steps
-                        ) - 1
+                    if len([v for v in steps_vals if v is not None]) >= MIN_ACTIVITY_DAYS:
+                        avg_steps = mean(steps_vals)
+                        if avg_steps and today.get("steps") is not None:
+                            features["steps_vs_baseline_pct"] = (
+                                today["steps"] / avg_steps
+                            ) - 1
 
                     avg_active = mean(active_vals)
-                    if avg_active and today["active_minutes"] is not None:
+                    if avg_active and today.get("active_minutes") is not None:
                         features["active_minutes_delta"] = (
                             today["active_minutes"] - avg_active
                         )
@@ -283,6 +303,7 @@ def main():
 
                     upsert_features(cur, user_id, day, features)
                     logging.info(f"{day}: features computed")
+
 
         conn.commit()
 
