@@ -1,7 +1,9 @@
-import Today from "./pages/Today"
+import Today from "./pages/Today";
 
-function App() {
-  return <Today />
+export default function App() {
+  return (
+    <main className="min-h-screen">
+      <Today />
+    </main>
+  );
 }
-
-export default App
