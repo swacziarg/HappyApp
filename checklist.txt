@@ -110,18 +110,18 @@
 
 **Goal:** Decouple backend logic from UI.
 
-- [ ] Create FastAPI app
-- [ ] Add endpoints:
-- [ ] `GET /today`
-- [ ] `GET /history`
-- [ ] `POST /mood`
-- [ ] Validate request/response schemas
-- [ ] Handle missing data gracefully
+- [X] Create FastAPI app
+- [X] Add endpoints:
+- [X] `GET /today`
+- [X] `GET /history`
+- [X] `POST /mood`
+- [X] Validate request/response schemas
+- [X] Handle missing data gracefully
 
 **Gate**
-- [ ] Endpoints work via curl/Postman
-- [ ] Frontend could exist without DB knowledge
-- [ ] Errors return useful messages
+- [X] Endpoints work via curl/Postman
+- [X] Frontend could exist without DB knowledge
+- [X] Errors return useful messages
 
 ---
 
