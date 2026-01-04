@@ -17,6 +17,7 @@ class HistoryDay(BaseModel):
     date: date
     predicted_mood: Optional[float]
     confidence: Optional[str]
+    explanation: List[str]
     status: str
 
 

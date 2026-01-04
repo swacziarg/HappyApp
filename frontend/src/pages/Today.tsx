@@ -33,6 +33,7 @@ type HistoryDay = {
   date: string;
   predicted_mood: number;
   confidence: Confidence;
+  explanation: string[];
   status: "available" | "missing";
 };
 
@@ -84,9 +85,7 @@ export default function Today() {
           date: day.date,
           predicted_mood: day.predicted_mood,
           confidence: day.confidence,
-          explanation: [
-            "Historical view: explanation not stored for this day",
-          ],
+          explanation: day.explanation,
         });
       })
       .catch((err: Error) => {

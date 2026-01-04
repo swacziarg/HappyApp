@@ -24,7 +24,8 @@ def get_history(
         SELECT
             date,
             predicted_mood::float,
-            confidence
+            confidence,
+            explanation
         FROM predictions
         WHERE date BETWEEN %s AND %s
         ORDER BY date
@@ -34,7 +35,7 @@ def get_history(
 
     rows = cur.fetchall()
     rows_by_date = {
-        row[0]: (row[1], row[2]) for row in rows
+        row[0]: (row[1], row[2], row[3]) for row in rows
     }
 
     days = []
@@ -42,12 +43,13 @@ def get_history(
 
     while current <= end:
         if current in rows_by_date:
-            predicted_mood, confidence = rows_by_date[current]
+            predicted_mood, confidence, explanation = rows_by_date[current]
             days.append(
                 HistoryDay(
                     date=current,
                     predicted_mood=predicted_mood,
                     confidence=confidence,
+                    explanation=explanation,
                     status="available"
                 )
             )
@@ -57,6 +59,7 @@ def get_history(
                     date=current,
                     predicted_mood=None,
                     confidence=None,
+                    explanation=[],
                     status="missing"
                 )
             )
