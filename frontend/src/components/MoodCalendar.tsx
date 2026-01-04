@@ -41,7 +41,8 @@ export function MoodCalendar({
           high: "bg-green-200",
           lowConfidence: "bg-gray-200 text-gray-400 opacity-60",
           missing: "text-gray-300 opacity-40",
-        }}
+          hasNote: "has-note",
+        }}        
         disabled={{ after: new Date() }}
       />
 

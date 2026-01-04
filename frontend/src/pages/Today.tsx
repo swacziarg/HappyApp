@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type JSX } from "react";
+import { useEffect, useRef, useState, type JSX, useMemo } from "react";
 import { MoodCalendar } from "../components/MoodCalendar";
 import { useMoodHistory } from "../hooks/useMoodHistory";
 import { useMoodCheckins } from "../hooks/useMoodCheckin";
@@ -44,6 +44,21 @@ export default function Today(): JSX.Element {
   const [checkinNote, setCheckinNote] = useState("");
   const [isEditingCheckin, setIsEditingCheckin] = useState(true);
   const [isSavingCheckin, setIsSavingCheckin] = useState(false);
+
+  /* ───────── Calendar note markers (derived, no fetch) ───────── */
+
+  const noteDays = useMemo(() => {
+    return Object.values(checkinsByDate)
+      .filter((c) => {
+        if (!c.note || c.note.trim().length === 0) return false;
+        const d = parseLocalDate(c.date);
+        return (
+          d.getMonth() === visibleMonth.getMonth() &&
+          d.getFullYear() === visibleMonth.getFullYear()
+        );
+      })
+      .map((c) => parseLocalDate(c.date));
+  }, [checkinsByDate, visibleMonth]);
 
   /* ───────── Sync selected day (prediction) ───────── */
 
@@ -210,7 +225,10 @@ export default function Today(): JSX.Element {
           <MoodCalendar
             visibleMonth={visibleMonth}
             currentDate={currentDate}
-            modifiers={modifiers}
+            modifiers={{
+              ...modifiers,
+              hasNote: noteDays,
+            }}
             isLoading={isMonthLoading}
             onMonthChange={setVisibleMonth}
             onSelect={(date) => {

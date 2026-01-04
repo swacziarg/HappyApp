@@ -1,1 +1,18 @@
 @import "tailwindcss";
+/* react-day-picker note indicator */
+.has-note {
+    position: relative;
+  }
+  
+  .has-note::after {
+    content: "";
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 9999px;
+    background-color: #111;
+  }
+  
