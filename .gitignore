@@ -1,5 +1,10 @@
-venv/
-.env
 data/raw/garmin_export_2025-12-31/*
 !data/raw/garmin_export_2025-12-31/INVENTORY.md
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.env
+.env.*
+.DS_Store
