@@ -129,8 +129,8 @@
 
 **Goal:** Close the feedback loop.
 
-- [ ] Create Today view
-- [ ] Display predicted mood + explanation
+- [X] Create Today view
+- [X] Display predicted mood + explanation
 - [ ] Build 1-tap mood check-in
 - [ ] Persist mood labels
 - [ ] Create history view
