@@ -93,7 +93,8 @@ than primary drivers of mood inference.
 Normalization Strategy
 ----------------------
 All physiological features are normalized using a rolling 28-day personal baseline,
-excluding the current day, to prevent future data leakage.
+excluding the current day, to prevent future data leakage. The minimum previous days
+is 7, ensuring that there is some data to train on.
 
 This within-person normalization approach is supported by affective science literature,
 which emphasizes that deviations from individual norms are more predictive of mood than
@@ -138,7 +139,7 @@ Limitations
 - HRV and stress metrics are sensitive to confounds such as exercise, illness, and
   excitement unrelated to negative affect.
 - Single-day predictions should be interpreted cautiously; trends are more reliable
-  than isolated values.
+  than isolated values. 
 - The system is not intended for clinical diagnosis or treatment guidance.
 
 References (Chicago Author–Date)
