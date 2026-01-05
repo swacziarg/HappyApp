@@ -6,7 +6,10 @@ app = FastAPI(title="Garmin → Mood API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "https://your-github-username.github.io", 
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -15,7 +18,6 @@ app.add_middleware(
 app.include_router(today.router)
 app.include_router(history.router)
 app.include_router(mood.router)
-
 
 @app.get("/")
 def read_root():

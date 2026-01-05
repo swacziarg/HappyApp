@@ -8,6 +8,7 @@ import {
   parseLocalDate,
   formatDate,
 } from "../utils/date";
+import { API_BASE_URL } from "../api/config";
 
 const MOOD_EMOJIS = ["😞", "🙁", "😐", "🙂", "😊"];
 
@@ -125,7 +126,7 @@ export default function Today(): JSX.Element {
     setIsSavingCheckin(true);
 
     try {
-      await fetch("http://localhost:8000/mood", {
+      await fetch(`${API_BASE_URL}/mood`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
