@@ -131,15 +131,15 @@
 
 - [X] Create Today view
 - [X] Display predicted mood + explanation
-- [ ] Build 1-tap mood check-in
-- [ ] Persist mood labels
-- [ ] Create history view
-- [ ] Mobile-friendly layout
+- [X] Build 1-tap mood check-in
+- [X] Persist mood labels
+- [X] Create history view
+- [~] Mobile-friendly layout
 
 **Gate**
-- [ ] App usable daily without touching code
-- [ ] Mood check-ins persist correctly
-- [ ] Predicted vs actual mood visible
+- [X] App usable daily without touching code
+- [X] Mood check-ins persist correctly
+- [X] Predicted vs actual mood visible
 
 ---
 
