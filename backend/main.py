@@ -8,7 +8,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "https://your-github-username.github.io", 
+        "https://swaczlarg.github.io", 
     ],
     allow_credentials=True,
     allow_methods=["*"],
