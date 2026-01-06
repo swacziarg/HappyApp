@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const navigate = useNavigate();
+  const redirectTo = "https://swacziarg.github.io/HappyApp/#/login";  
 
   useEffect(() => {
     const {
@@ -24,6 +25,7 @@ export default function Login() {
       <Auth
         supabaseClient={supabase}
         appearance={{ theme: ThemeSupa }}
+        redirectTo={redirectTo}
         providers={[]}
       />
     </div>
