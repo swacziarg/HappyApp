@@ -21,12 +21,11 @@ def get_public_key(token: str):
             return key
 
     raise HTTPException(status_code=401, detail="Public key not found")
-
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     token = credentials.credentials
-
+    print(jwt.get_unverified_claims(token))
     try:
         public_key = get_public_key(token)
 
@@ -34,11 +33,16 @@ def get_current_user(
             token,
             public_key,
             algorithms=["RS256"],
-            audience="authenticated",
             issuer=SUPABASE_ISSUER,
+            options={
+                "verify_aud": False,  
+            },
         )
 
-        return payload  # payload["sub"] = Supabase user ID
+        return payload  # payload["sub"] is the user ID
 
     except Exception as e:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(
+            status_code=401,
+            detail=f"Invalid or expired token: {str(e)}",
+        )
