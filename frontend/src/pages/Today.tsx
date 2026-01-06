@@ -9,6 +9,7 @@ import {
   formatDate,
 } from "../utils/date";
 import { API_BASE_URL } from "../api/config";
+import { fetchWithAuth } from "../api/fetchWithAuth";
 
 const MOOD_EMOJIS = ["😞", "🙁", "😐", "🙂", "😊"];
 
@@ -122,20 +123,23 @@ export default function Today(): JSX.Element {
 
   async function submitCheckin() {
     if (!checkinMood) return;
-
+  
     setIsSavingCheckin(true);
-
+  
     try {
-      await fetch(`${API_BASE_URL}/mood`, {
+      const res = await fetchWithAuth(`${API_BASE_URL}/mood`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           date: currentDate,
           mood: checkinMood,
           note: checkinNote || null,
         }),
       });
-
+  
+      if (!res.ok) {
+        throw new Error("Failed to save mood");
+      }
+  
       // optimistic cache update
       setCheckinsByDate((prev) => ({
         ...prev,
@@ -145,12 +149,13 @@ export default function Today(): JSX.Element {
           note: checkinNote || null,
         },
       }));
-
+  
       setIsEditingCheckin(false);
     } finally {
       setIsSavingCheckin(false);
     }
   }
+  
 
   /* ───────── Derived UI ───────── */
 

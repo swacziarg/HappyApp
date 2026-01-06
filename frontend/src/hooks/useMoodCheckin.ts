@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { monthBoundsFromDate } from "../utils/date";
+import { fetchWithAuth } from "../api/fetchWithAuth";
 
 export type MoodCheckin = {
   date: string;
@@ -24,8 +25,11 @@ export function useMoodCheckins(visibleMonth: Date) {
 
     const { start, end } = monthBoundsFromDate(visibleMonth);
 
-    fetch(`${API_BASE}/mood?start=${start}&end=${end}`)
-      .then((r) => r.json())
+    fetchWithAuth(`${API_BASE}/mood?start=${start}&end=${end}`)
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch mood checkins");
+        return r.json();
+      })
       .then((json) => {
         setByDate((prev) => {
           const next = { ...prev };
