@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from datetime import date, timedelta
 
 from backend.db.connection import get_db_connection
@@ -8,16 +8,17 @@ from backend.api.schemas import (
     MoodHistoryResponse,
     MoodDay,
 )
-
+from backend.auth.supabase import get_current_user
 
 router = APIRouter()
 
-# TEMP: single-user placeholder until auth exists
-DEFAULT_USER_ID = "b1101f5b-a68d-4cb9-bf48-bfc4697a761a"
-
-
 @router.post("/mood", response_model=MoodResponse)
-def upsert_mood(mood: MoodCreate):
+def upsert_mood(
+    mood: MoodCreate,
+    user=Depends(get_current_user),
+):
+    user_id = user["sub"]
+
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -36,18 +37,9 @@ def upsert_mood(mood: MoodCreate):
             DO UPDATE SET
                 mood = EXCLUDED.mood,
                 note = EXCLUDED.note
-            RETURNING
-                date,
-                mood,
-                note,
-                created_at
+            RETURNING date, mood, note, created_at
             """,
-            (
-                DEFAULT_USER_ID,
-                mood.date,
-                mood.mood,
-                mood.note
-            )
+            (user_id, mood.date, mood.mood, mood.note),
         )
 
         row = cur.fetchone()
@@ -57,63 +49,54 @@ def upsert_mood(mood: MoodCreate):
         conn.rollback()
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to save mood label: {str(e)}"
+            detail=f"Failed to save mood label: {str(e)}",
         )
 
     finally:
         cur.close()
         conn.close()
 
-    return {
-        "date": row[0],
-        "mood": row[1],
-        "note": row[2],
-        "created_at": row[3]
-    }
+    return MoodResponse(
+        date=row[0],
+        mood=row[1],
+        note=row[2],
+        created_at=row[3],
+    )
 
 
 @router.get("/mood", response_model=MoodHistoryResponse)
 def get_mood_history(
     start: date = Query(...),
-    end: date = Query(...)
+    end: date = Query(...),
+    user=Depends(get_current_user),
 ):
     if start > end:
         raise HTTPException(
             status_code=400,
-            detail="start date must be before end date"
+            detail="start date must be before end date",
         )
+
+    user_id = user["sub"]
 
     conn = get_db_connection()
     cur = conn.cursor()
 
-    try:
-        cur.execute(
-            """
-            SELECT
-                date,
-                mood,
-                note,
-                created_at
-            FROM mood_labels
-            WHERE user_id = %s
-              AND date BETWEEN %s AND %s
-            ORDER BY date
-            """,
-            (
-                DEFAULT_USER_ID,
-                start,
-                end,
-            )
-        )
+    cur.execute(
+        """
+        SELECT date, mood, note, created_at
+        FROM mood_labels
+        WHERE user_id = %s
+          AND date BETWEEN %s AND %s
+        ORDER BY date
+        """,
+        (user_id, start, end),
+    )
 
-        rows = cur.fetchall()
-        rows_by_date = {
-            row[0]: row[1:] for row in rows
-        }
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
 
-    finally:
-        cur.close()
-        conn.close()
+    rows_by_date = {row[0]: row[1:] for row in rows}
 
     days = []
     current = start
@@ -127,7 +110,7 @@ def get_mood_history(
                     mood=mood,
                     note=note,
                     status="available",
-                    created_at=created_at
+                    created_at=created_at,
                 )
             )
         else:
@@ -137,7 +120,7 @@ def get_mood_history(
                     mood=None,
                     note=None,
                     status="missing",
-                    created_at=None
+                    created_at=None,
                 )
             )
 

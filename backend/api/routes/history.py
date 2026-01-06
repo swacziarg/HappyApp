@@ -1,39 +1,44 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from datetime import date, timedelta
+
 from backend.db.connection import get_db_connection
 from backend.api.schemas import HistoryResponse, HistoryDay
+from backend.auth.supabase import get_current_user
 
 router = APIRouter()
+
 @router.get("/history", response_model=HistoryResponse)
 def get_history(
     start: date = Query(...),
-    end: date = Query(...)
+    end: date = Query(...),
+    user=Depends(get_current_user),
 ):
     if start > end:
         raise HTTPException(
             status_code=400,
-            detail="start date must be before end date"
+            detail="start date must be before end date",
         )
 
+    user_id = user["sub"]
 
     conn = get_db_connection()
     cur = conn.cursor()
 
     cur.execute(
         """
-        SELECT
-            date,
-            predicted_mood::float,
-            confidence,
-            explanation
+        SELECT date, predicted_mood::float, confidence, explanation
         FROM predictions
-        WHERE date BETWEEN %s AND %s
+        WHERE user_id = %s
+          AND date BETWEEN %s AND %s
         ORDER BY date
         """,
-        (start, end)
+        (user_id, start, end),
     )
 
     rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
     rows_by_date = {
         row[0]: (row[1], row[2], row[3]) for row in rows
     }
@@ -50,7 +55,7 @@ def get_history(
                     predicted_mood=predicted_mood,
                     confidence=confidence,
                     explanation=explanation,
-                    status="available"
+                    status="available",
                 )
             )
         else:
@@ -60,13 +65,14 @@ def get_history(
                     predicted_mood=None,
                     confidence=None,
                     explanation=[],
-                    status="missing"
+                    status="missing",
                 )
             )
+
         current += timedelta(days=1)
 
     return HistoryResponse(
         start=start,
         end=end,
-        days=days
+        days=days,
     )
