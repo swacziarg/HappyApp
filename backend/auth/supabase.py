@@ -88,7 +88,7 @@ def get_current_user(
         payload = jwt.decode(
             token,
             public_key,
-            algorithms=["RS256"],
+            algorithms=["ES256", "RS256"],
             issuer=SUPABASE_ISSUER,
             options={"verify_aud": False},
         )
