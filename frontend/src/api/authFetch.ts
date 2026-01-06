@@ -1,8 +1,8 @@
 import { supabase } from "../lib/supabase";
 
-export async function fetchWithAuth(
-  url: string,
-  options: RequestInit = {}
+export async function authFetch(
+  input: RequestInfo,
+  init: RequestInit = {}
 ) {
   const {
     data: { session },
@@ -12,12 +12,11 @@ export async function fetchWithAuth(
     throw new Error("Not authenticated");
   }
 
-  return fetch(url, {
-    ...options,
+  return fetch(input, {
+    ...init,
     headers: {
-      ...options.headers,
+      ...(init.headers || {}),
       Authorization: `Bearer ${session.access_token}`,
-      "Content-Type": "application/json",
     },
   });
 }

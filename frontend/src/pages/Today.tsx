@@ -9,7 +9,7 @@ import {
   formatDate,
 } from "../utils/date";
 import { API_BASE_URL } from "../api/config";
-import { fetchWithAuth } from "../api/fetchWithAuth";
+import { authFetch } from "../api/authFetch";
 
 const MOOD_EMOJIS = ["😞", "🙁", "😐", "🙂", "😊"];
 
@@ -127,8 +127,11 @@ export default function Today(): JSX.Element {
     setIsSavingCheckin(true);
   
     try {
-      const res = await fetchWithAuth(`${API_BASE_URL}/mood`, {
+      const res = await authFetch(`${API_BASE_URL}/mood`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           date: currentDate,
           mood: checkinMood,

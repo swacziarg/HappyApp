@@ -1,11 +1,11 @@
 // src/api/history.ts
 import type { HistoryApiResponse } from "../types/mood";
-import { fetchWithAuth } from "./fetchWithAuth";
+import { authFetch } from "./authFetch";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 export async function fetchHistory(start: string, end: string) {
-  const res = await fetchWithAuth(
+  const res = await authFetch(
     `${API_BASE}/history?start=${start}&end=${end}`
   );
 
