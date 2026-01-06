@@ -9,7 +9,7 @@ export async function authFetch(
       data: { session },
     } = await supabase.auth.getSession();
   
-    console.log("SESSION", session); // 👈 ADD THIS
+    console.log("SESSION", session); 
   
     if (!session) {
       throw new Error("Not authenticated");
