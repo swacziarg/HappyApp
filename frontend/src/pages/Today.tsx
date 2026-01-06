@@ -19,7 +19,7 @@ export default function Today(): JSX.Element {
   );
   const [showCalendar, setShowCalendar] = useState(false);
 
-  /* ───────── History (predictions) ───────── */
+  /* ───────── History (predictions) ───────── */ 
 
   const { historyByDate, isMonthLoading, modifiers } =
     useMoodHistory(visibleMonth);
