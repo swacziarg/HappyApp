@@ -8,14 +8,11 @@ export async function authFetch(
     const {
       data: { session },
     } = await supabase.auth.getSession();
-  
-    console.log("SESSION", session); 
-  
+    
     if (!session) {
       throw new Error("Not authenticated");
     }
   
-    console.log("ACCESS TOKEN (first 20 chars):", session.access_token.slice(0, 20));
   
     return fetch(input, {
       ...init,
