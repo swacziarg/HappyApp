@@ -4,22 +4,25 @@ from pathlib import Path
 import tempfile
 import zipfile
 import shutil
+import hashlib
 
 from backend.auth.supabase import get_current_user
-
-from scripts.ingest.garmin_sleep import ingest_sleep
-from scripts.ingest.garmin_health_status import ingest_health_status
-from scripts.ingest.garmin_uds import ingest_uds
-
-from scripts.compute_daily_features import compute_daily_features_for_user
-from backend.run_inference import run_inference_for_user
+from backend.db.connection import get_db_connection
+from backend.garmin.orchestrator import process_garmin_upload
 
 router = APIRouter(prefix="/garmin", tags=["garmin"])
+
+# ─────────────────────────────────────────────
+# Helpers: file handling
+# ─────────────────────────────────────────────
 
 def extract_uploads(files: List[UploadFile], tmpdir: Path) -> list[Path]:
     extracted: list[Path] = []
 
     for f in files:
+        if not f.filename:
+            continue
+
         if f.filename.endswith(".zip"):
             zip_path = tmpdir / f.filename
             with open(zip_path, "wb") as out:
@@ -40,69 +43,141 @@ def extract_uploads(files: List[UploadFile], tmpdir: Path) -> list[Path]:
                 detail=f"Unsupported file type: {f.filename}",
             )
 
-    # collect all json files (zip or direct)
+    # Collect all JSON files (zip or direct)
     extracted.extend(tmpdir.rglob("*.json"))
     return extracted
 
-def partition_garmin_files(files: list[Path]):
-    sleep = []
-    health = []
-    uds = []
 
-    for path in files:
-        name = path.name
+def hash_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
-        if name.endswith("sleepData.json"):
-            sleep.append(path)
-        elif name.endswith("healthStatusData.json"):
-            health.append(path)
-        elif name.startswith("UDSFile_"):
-            uds.append(path)
+# ─────────────────────────────────────────────
+# Helpers: upload tracking / idempotency
+# ─────────────────────────────────────────────
 
-    return sleep, health, uds
+def record_upload(user_id: str, filename: str, file_hash: str) -> bool:
+    """
+    Insert upload record.
+    Returns True if inserted (new file), False if already exists.
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO garmin_uploads (
+                    user_id,
+                    filename,
+                    file_hash,
+                    status
+                )
+                VALUES (%s, %s, %s, 'processing')
+                ON CONFLICT (user_id, file_hash)
+                DO NOTHING;
+                """,
+                (user_id, filename, file_hash),
+            )
+            inserted = cur.rowcount == 1
+        conn.commit()
+        return inserted
+    finally:
+        conn.close()
+
+
+def mark_upload_success(file_hash: str):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE garmin_uploads
+                SET status = 'success', error_message = NULL
+                WHERE file_hash = %s;
+                """,
+                (file_hash,),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def mark_upload_failed(file_hash: str, error: str):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE garmin_uploads
+                SET status = 'failed', error_message = %s
+                WHERE file_hash = %s;
+                """,
+                (error, file_hash),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+# ─────────────────────────────────────────────
+# Route
+# ─────────────────────────────────────────────
 
 @router.post("/upload")
 def upload_garmin_files(
     files: List[UploadFile] = File(...),
+    user=Depends(get_current_user),
 ):
-    user_id = "b1101f5b-a68d-4cb9-bf48-bfc4697a761a"
-
+    user_id = user["sub"]
 
     if not files:
         raise HTTPException(status_code=400, detail="No files uploaded")
+
+    processed_files: list[Path] = []
+    file_hashes: list[str] = []
 
     with tempfile.TemporaryDirectory() as tmp:
         tmpdir = Path(tmp)
 
         # 1️⃣ Extract uploads
         all_json = extract_uploads(files, tmpdir)
-
         if not all_json:
             raise HTTPException(
                 status_code=400,
                 detail="No JSON files found in upload",
             )
 
-        # 2️⃣ Partition files
-        sleep_files, health_files, uds_files = partition_garmin_files(all_json)
+        # 2️⃣ Idempotency check + tracking
+        for path in all_json:
+            fh = hash_file(path)
+            is_new = record_upload(user_id, path.name, fh)
+            if is_new:
+                processed_files.append(path)
+                file_hashes.append(fh)
 
-        # 3️⃣ Ingest
-        if sleep_files:
-            ingest_sleep(sleep_files, user_id)
+        if not processed_files:
+            return {
+                "days_ingested": 0,
+                "days_predicted": 0,
+                "message": "All files were already processed",
+            }
 
-        if health_files:
-            ingest_health_status(health_files, user_id)
+        try:
+            # 3️⃣ Orchestrate full pipeline
+            result = process_garmin_upload(
+                user_id=user_id,
+                files=processed_files,
+            )
 
-        if uds_files:
-            ingest_uds(uds_files, user_id)
+            # 4️⃣ Mark uploads successful
+            for fh in file_hashes:
+                mark_upload_success(fh)
 
-        # 4️⃣ Compute features
-        compute_daily_features_for_user(user_id)
+        except Exception as e:
+            for fh in file_hashes:
+                mark_upload_failed(fh, str(e))
+            raise
 
-        # 5️⃣ Run inference
-        predicted = run_inference_for_user(user_id)
-
-    return {
-        "days_ingested": len(set(p.stem for p in all_json)),
-        "days_predicted": predicted,
-    }
+    return result
