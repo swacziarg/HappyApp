@@ -3,7 +3,6 @@ from backend.db.fetch_features import fetch_unpredicted_days
 from backend.db.insert_prediction import insert_prediction
 from backend.inference.infer import infer_mood
 
-USER_ID = "b1101f5b-a68d-4cb9-bf48-bfc4697a761a"
 
 def run_inference_for_user(user_id: str) -> int:
     conn = get_db_connection()

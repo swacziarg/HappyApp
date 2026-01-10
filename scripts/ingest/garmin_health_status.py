@@ -3,7 +3,6 @@ import gzip
 from pathlib import Path
 from scripts.ingest.db import get_conn
 
-USER_ID = "b1101f5b-a68d-4cb9-bf48-bfc4697a761a"
 
 HEALTH_STATUS_UPSERT_SQL = """
 INSERT INTO daily_physiology (

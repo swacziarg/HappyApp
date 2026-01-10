@@ -3,8 +3,6 @@ import gzip
 from pathlib import Path
 from scripts.ingest.db import get_conn
 
-USER_ID = "b1101f5b-a68d-4cb9-bf48-bfc4697a761a"
-
 
 # ─────────────────────────────────────────────
 # SQL
@@ -134,13 +132,13 @@ def load_garmin_json(path: Path) -> list[dict]:
 # Normalizers
 # ─────────────────────────────────────────────
 
-def normalize_activity(raw):
+def normalize_activity(raw, user_id: str):
     active_minutes = None
     if raw.get("moderateIntensityMinutes") is not None or raw.get("vigorousIntensityMinutes") is not None:
         active_minutes = (raw.get("moderateIntensityMinutes") or 0) + (raw.get("vigorousIntensityMinutes") or 0)
 
     return {
-        "user_id": USER_ID,
+        "user_id": user_id,
         "date": raw.get("calendarDate"),
         "steps": raw.get("totalSteps"),
         "calories_burned": raw.get("totalKilocalories"),
@@ -150,7 +148,8 @@ def normalize_activity(raw):
     }
 
 
-def normalize_stress(raw):
+
+def normalize_stress(raw, user_id: str):
     stress = raw.get("allDayStress")
     if not stress:
         return []
@@ -158,7 +157,7 @@ def normalize_stress(raw):
     rows = []
     for agg in stress.get("aggregatorList", []):
         rows.append({
-            "user_id": USER_ID,
+            "user_id": user_id,
             "date": raw.get("calendarDate"),
             "stress_type": agg.get("type"),
             "avg_stress": agg.get("averageStressLevel"),
@@ -170,8 +169,7 @@ def normalize_stress(raw):
         })
     return rows
 
-
-def normalize_body_battery(raw):
+def normalize_body_battery(raw, user_id: str):
     bb = raw.get("bodyBattery")
     if not bb:
         return []
@@ -179,13 +177,14 @@ def normalize_body_battery(raw):
     rows = []
     for stat in bb.get("bodyBatteryStatList", []):
         rows.append({
-            "user_id": USER_ID,
+            "user_id": user_id,
             "date": raw.get("calendarDate"),
             "stat_type": stat.get("bodyBatteryStatType"),
             "value": stat.get("statsValue"),
             "timestamp": stat.get("statTimestamp"),
         })
     return rows
+
 
 
 # ─────────────────────────────────────────────
@@ -202,13 +201,13 @@ def ingest_uds(files: list[Path], user_id: str):
         print(f"Loaded {len(records)} records from {path.name}")
 
         for r in records:
-            activity = normalize_activity(r)
+            activity = normalize_activity(r, user_id)
             if activity:
-                activity["user_id"] = user_id
                 activity_rows.append(activity)
 
-            stress_rows.extend(normalize_stress(r))
-            body_battery_rows.extend(normalize_body_battery(r))
+            stress_rows.extend(normalize_stress(r, user_id))
+            body_battery_rows.extend(normalize_body_battery(r, user_id))
+
 
     with get_conn() as conn:
         with conn.cursor() as cur:
