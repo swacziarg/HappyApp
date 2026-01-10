@@ -1,5 +1,5 @@
 import os
-import psycopg
+import psycopg2
 from contextlib import contextmanager
 from dotenv import load_dotenv
 from pathlib import Path
@@ -12,7 +12,7 @@ load_dotenv(env_path)
 
 @contextmanager
 def get_conn():
-    conn = psycopg.connect(os.environ["DATABASE_URL"])
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
     try:
         yield conn
     finally:
