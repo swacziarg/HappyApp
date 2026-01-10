@@ -1,9 +1,12 @@
 import json
+import gzip
 import pprint
 from dotenv import load_dotenv
+from pathlib import Path
+
 load_dotenv()
 
-from pathlib import Path
+from scripts.ingest.db import get_conn
 
 SLEEP_UPSERT_SQL = """
 INSERT INTO sleep_summary (
@@ -45,11 +48,17 @@ DO UPDATE SET
   source = EXCLUDED.source;
 """
 
+USER_ID = "b1101f5b-a68d-4cb9-bf48-bfc4697a761a"
+
+
+# ---------------------------
+# Helpers
+# ---------------------------
+
 def seconds_to_minutes(value):
     if value is None:
         return 0
     return int(value // 60)
-
 
 
 def normalize_sleep_record(raw: dict, user_id: str):
@@ -62,9 +71,8 @@ def normalize_sleep_record(raw: dict, user_id: str):
     awake_min = seconds_to_minutes(raw.get("awakeSleepSeconds"))
 
     total_sleep_min = deep_min + light_min + rem_min
-    
     if total_sleep_min == 0:
-        return None  
+        return None
 
     return {
         "user_id": user_id,
@@ -76,9 +84,7 @@ def normalize_sleep_record(raw: dict, user_id: str):
         "rem_sleep_minutes": rem_min,
         "awake_minutes": awake_min,
 
-        "sleep_score": (
-            raw.get("sleepScores", {}).get("overallScore")
-        ),
+        "sleep_score": raw.get("sleepScores", {}).get("overallScore"),
 
         "bedtime": raw.get("sleepStartTimestampGMT"),
         "wake_time": raw.get("sleepEndTimestampGMT"),
@@ -86,16 +92,101 @@ def normalize_sleep_record(raw: dict, user_id: str):
         "source": "garmin",
     }
 
-def load_sleep_file(path: Path):
-    with open(path, "r") as f:
-        return json.load(f)
 
-from scripts.ingest.db import get_conn
+# ---------------------------
+# FIXED: robust Garmin JSON loader
+# ---------------------------
 
-USER_ID = "b1101f5b-a68d-4cb9-bf48-bfc4697a761a"
+def load_sleep_file(path: Path) -> list[dict]:
+    """
+    Load a Garmin sleepData.json file safely.
+    Skips empty or invalid files instead of crashing.
+    """
+
+    def _validate(data):
+        return isinstance(data, list) and len(data) > 0
+
+    # 1️⃣ Try gzip
+    try:
+        with gzip.open(path, "rt", encoding="utf-8") as f:
+            data = json.load(f)
+            if _validate(data):
+                return data
+    except Exception:
+        pass
+
+    # 2️⃣ Try UTF-8 with BOM
+    try:
+        with open(path, "r", encoding="utf-8-sig") as f:
+            data = json.load(f)
+            if _validate(data):
+                return data
+    except Exception:
+        pass
+
+    # 3️⃣ Binary fallback
+    try:
+        with open(path, "rb") as f:
+            raw = f.read()
+            if not raw.strip():
+                print(f"⚠️  Skipping empty file: {path.name}")
+                return []
+
+            text = raw.decode("utf-8", errors="ignore").strip()
+            if not text:
+                print(f"⚠️  Skipping undecodable file: {path.name}")
+                return []
+
+            data = json.loads(text)
+            if _validate(data):
+                return data
+
+    except Exception as e:
+        print(f"⚠️  Skipping invalid JSON file {path.name}: {e}")
+        return []
+
+    print(f"⚠️  Skipping unsupported sleep file: {path.name}")
+    return []
+
+
+# ---------------------------
+# Ingest
+# ---------------------------
+
+def ingest_sleep(files: list[Path], user_id: str):
+    records: list[dict] = []
+
+    for path in files:
+        file_records = load_sleep_file(path)
+        print(f"Loaded {len(file_records)} records from {path.name}")
+        records.extend(file_records)
+
+    rows = []
+    for r in records:
+        if "sleepStartTimestampGMT" not in r:
+            continue
+
+        row = normalize_sleep_record(raw=r, user_id=user_id)
+        if row:
+            rows.append(row)
+
+    if not rows:
+        print("No valid sleep rows to ingest")
+        return
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.executemany(SLEEP_UPSERT_SQL, rows)
+        conn.commit()
+
+    print(f"Upserted {len(rows)} sleep rows")
+
+
+# ---------------------------
+# Local test runner
+# ---------------------------
 
 def main():
-    # --- load file (your existing logic) ---
     repo_root = Path(__file__).resolve().parents[2]
 
     sleep_dir = (
@@ -107,35 +198,11 @@ def main():
         / "DI-Connect-Wellness"
     )
 
-    matches = list(sleep_dir.glob("*sleepData.json"))
-    if not matches:
+    files = list(sleep_dir.glob("*sleepData.json"))
+    if not files:
         raise FileNotFoundError(f"No sleepData.json found in {sleep_dir}")
-    
-    records = []
 
-    for path in matches:
-        file_records = load_sleep_file(path)
-        print(f"Loaded {len(file_records)} records from {path.name}")
-        records.extend(file_records)
-
-    rows = []
-    for r in records:
-        if "sleepStartTimestampGMT" not in r:
-            continue
-
-        rows.append(
-            normalize_sleep_record(
-                raw=r,
-                user_id=USER_ID
-            )
-        )
-
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.executemany(SLEEP_UPSERT_SQL, rows)
-        conn.commit()
-
-    print(f"Upserted {len(rows)} sleep rows")
+    ingest_sleep(files, USER_ID)
 
 
 if __name__ == "__main__":

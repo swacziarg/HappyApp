@@ -1,8 +1,10 @@
 import json
+import gzip
 from pathlib import Path
 from scripts.ingest.db import get_conn
 
 USER_ID = "b1101f5b-a68d-4cb9-bf48-bfc4697a761a"
+
 
 # ─────────────────────────────────────────────
 # SQL
@@ -80,8 +82,56 @@ VALUES (
 ON CONFLICT DO NOTHING;
 """
 
+
 # ─────────────────────────────────────────────
-# NORMALIZERS
+# Robust Garmin JSON loader
+# ─────────────────────────────────────────────
+
+def load_garmin_json(path: Path) -> list[dict]:
+    def valid(data):
+        return isinstance(data, list) and len(data) > 0
+
+    try:
+        with gzip.open(path, "rt", encoding="utf-8") as f:
+            data = json.load(f)
+            if valid(data):
+                return data
+    except Exception:
+        pass
+
+    try:
+        with open(path, "r", encoding="utf-8-sig") as f:
+            data = json.load(f)
+            if valid(data):
+                return data
+    except Exception:
+        pass
+
+    try:
+        raw = path.read_bytes()
+        if not raw.strip():
+            print(f"⚠️  Skipping empty UDS file: {path.name}")
+            return []
+
+        text = raw.decode("utf-8", errors="ignore").strip()
+        if not text:
+            print(f"⚠️  Skipping undecodable UDS file: {path.name}")
+            return []
+
+        data = json.loads(text)
+        if valid(data):
+            return data
+
+    except Exception as e:
+        print(f"⚠️  Skipping invalid UDS JSON {path.name}: {e}")
+        return []
+
+    print(f"⚠️  Skipping unsupported UDS file: {path.name}")
+    return []
+
+
+# ─────────────────────────────────────────────
+# Normalizers
 # ─────────────────────────────────────────────
 
 def normalize_activity(raw):
@@ -109,7 +159,7 @@ def normalize_stress(raw):
     for agg in stress.get("aggregatorList", []):
         rows.append({
             "user_id": USER_ID,
-            "date": raw["calendarDate"],
+            "date": raw.get("calendarDate"),
             "stress_type": agg.get("type"),
             "avg_stress": agg.get("averageStressLevel"),
             "max_stress": agg.get("maxStressLevel"),
@@ -130,7 +180,7 @@ def normalize_body_battery(raw):
     for stat in bb.get("bodyBatteryStatList", []):
         rows.append({
             "user_id": USER_ID,
-            "date": raw["calendarDate"],
+            "date": raw.get("calendarDate"),
             "stat_type": stat.get("bodyBatteryStatType"),
             "value": stat.get("statsValue"),
             "timestamp": stat.get("statTimestamp"),
@@ -139,8 +189,41 @@ def normalize_body_battery(raw):
 
 
 # ─────────────────────────────────────────────
-# MAIN
+# Ingest
 # ─────────────────────────────────────────────
+
+def ingest_uds(files: list[Path], user_id: str):
+    activity_rows = []
+    stress_rows = []
+    body_battery_rows = []
+
+    for path in files:
+        records = load_garmin_json(path)
+        print(f"Loaded {len(records)} records from {path.name}")
+
+        for r in records:
+            activity = normalize_activity(r)
+            if activity:
+                activity["user_id"] = user_id
+                activity_rows.append(activity)
+
+            stress_rows.extend(normalize_stress(r))
+            body_battery_rows.extend(normalize_body_battery(r))
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            if activity_rows:
+                cur.executemany(ACTIVITY_UPSERT_SQL, activity_rows)
+            if stress_rows:
+                cur.executemany(STRESS_INSERT_SQL, stress_rows)
+            if body_battery_rows:
+                cur.executemany(BODY_BATTERY_INSERT_SQL, body_battery_rows)
+        conn.commit()
+
+    print(f"Upserted {len(activity_rows)} daily_activity rows")
+    print(f"Inserted {len(stress_rows)} daily_stress rows")
+    print(f"Inserted {len(body_battery_rows)} daily_body_battery rows")
+
 
 def main():
     repo_root = Path(__file__).resolve().parents[2]
@@ -157,29 +240,7 @@ def main():
     if not files:
         raise FileNotFoundError("No UDS files found")
 
-    activity_rows = []
-    stress_rows = []
-    body_battery_rows = []
-
-    for path in files:
-        records = json.load(open(path))
-        print(f"Loaded {len(records)} records from {path.name}")
-
-        for r in records:
-            activity_rows.append(normalize_activity(r))
-            stress_rows.extend(normalize_stress(r))
-            body_battery_rows.extend(normalize_body_battery(r))
-
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.executemany(ACTIVITY_UPSERT_SQL, activity_rows)
-            cur.executemany(STRESS_INSERT_SQL, stress_rows)
-            cur.executemany(BODY_BATTERY_INSERT_SQL, body_battery_rows)
-        conn.commit()
-
-    print(f"Upserted {len(activity_rows)} daily_activity rows")
-    print(f"Inserted {len(stress_rows)} daily_stress rows")
-    print(f"Inserted {len(body_battery_rows)} daily_body_battery rows")
+    ingest_uds(files, USER_ID)
 
 
 if __name__ == "__main__":

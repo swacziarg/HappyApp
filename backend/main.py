@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.api.routes import today, history, mood
+from backend.api.routes import today, history, mood, garmin
 
 app = FastAPI(title="Garmin → Mood API")
 
@@ -18,6 +18,7 @@ app.add_middleware(
 app.include_router(today.router)
 app.include_router(history.router)
 app.include_router(mood.router)
+app.include_router(garmin.router)
 
 @app.get("/")
 def read_root():

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { GarminUpload } from "../components/GarminUpload";
 
 export default function Home() {
   return (
@@ -6,6 +7,7 @@ export default function Home() {
       <div className="max-w-xl w-full text-center">
         <div className="rounded-3xl bg-white/80 backdrop-blur p-8 shadow-xl space-y-6">
           <div className="text-6xl">🌤️</div>
+
           <h1 className="text-4xl font-bold text-gray-900 tracking-tight">
             Understand your mood
           </h1>
@@ -31,9 +33,10 @@ export default function Home() {
               View today’s mood →
             </Link>
           </div>
-        </div>
 
-        
+          {/* 👇 Garmin upload */}
+          <GarminUpload />
+        </div>
       </div>
     </div>
   );

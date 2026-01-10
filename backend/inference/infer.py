@@ -1,13 +1,13 @@
 
-from inference.mood_rules import (
+from backend.inference.mood_rules import (
     clamp,
     sleep_contribution,
     cardio_contribution,
     stress_contribution,
     activity_contribution,
 )
-from inference.confidence import compute_confidence
-from inference.explain import explain_feature, generate_explanations
+from backend.inference.confidence import compute_confidence
+from backend.inference.explain import explain_feature, generate_explanations
 
 
 BASELINE_MOOD = 3.0
