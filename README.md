@@ -35,5 +35,5 @@ Garmin Export
 **Backend:** FastAPI, Supabase (Postgres + RLS)  
 **Frontend:** React  
 **Auth:** Supabase Auth (JWT)  
-**Deployment:** Render + GitHub
+**Deployment:** Render + GitHub  
 **Data:** Garmin exports (sleep, HRV, stress, activity, body battery)
